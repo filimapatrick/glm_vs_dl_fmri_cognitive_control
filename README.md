@@ -1,4 +1,4 @@
-# A Comparative Study of General Linear Modeling and Deep Learning Approaches for Task-Based fMRI Analysis of Cognitive Control
+# A Methodological Study of GLM and Deep Learning Behavior in Small-Sample Task-Based fMRI of Cognitive Control
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -6,7 +6,9 @@
 
 ## 📋 Table of Contents
 - [Overview](#overview)
+- [What is New in This Study](#what-is-new-in-this-study)
 - [Objectives](#objectives)
+- [Experimental Design](#experimental-design)
 - [Dataset](#dataset)
 - [Methodology](#methodology)
 - [Project Structure](#project-structure)
@@ -17,23 +19,122 @@
 - [License](#license)
 - [Contributors](#contributors)
 
+---
+
 ## 🔬 Overview
 
-This project provides a systematic comparison between classical General Linear Model (GLM)-based analysis and modern deep learning approaches for analyzing task-based functional MRI data from the Eriksen Flanker task. We investigate cognitive control mechanisms using the well-established ds000102 dataset from OpenNeuro.
+This project investigates model behavior under small-sample, high-dimensional fMRI conditions using the NYU Slow Flanker dataset (ds000102). We compare classical General Linear Models (GLM) and deep learning (DL) approaches to characterize differences in **predictive generalization, statistical stability, and spatial correspondence** under constrained data regimes typical of task-based neuroimaging studies.
+
+Rather than treating this as a performance comparison, this study focuses on characterizing how different model classes behave under identical experimental constraints, with emphasis on **overfitting dynamics, cross-subject generalization, and representational alignment with task-evoked brain activity**.
+
+The goal is to empirically characterize the limitations and behavior of deep learning in small-sample cognitive neuroscience, rather than to establish superiority over classical statistical inference.
 
 ### Key Research Questions
-- Do deep learning methods offer meaningful advantages over traditional GLM approaches in small-scale fMRI datasets?
-- How do performance, sensitivity, and interpretability compare between these methodological approaches?
-- What are the optimal strategies for applying deep learning to task-based fMRI with limited sample sizes?
+- **Generalization**: How do statistical inference (GLM) and predictive models (DL) differ in cross-subject generalization under small-sample neuroimaging constraints?
+- **Stability**: How does statistical inference stability (GLM) compare to predictive stability (DL) under repeated cross-validation?
+- **Spatial correspondence**: To what extent do DL-derived attribution maps correspond to GLM-derived activation maps?
+- **Overfitting**: How do learning dynamics differ across model classes under controlled sample-size constraints?
+
+---
+
+## 💡 What is New in This Study
+
+This work does not introduce new algorithms or propose new machine learning methods. Instead, it provides a **controlled methodological investigation** of how classical statistical inference (General Linear Modeling, GLM) and deep learning (DL) behave under realistic small-sample, high-dimensional fMRI constraints.
+
+While the individual components of this pipeline (GLM analysis, deep learning classification, cross-validation, and permutation testing) are well established in neuroimaging and machine learning, their integration into a **single unified experimental framework focused on model behavior rather than performance optimization** is less commonly addressed.
+
+### 1. Cross-Paradigm Comparison under a Shared Evaluation Framework
+Most prior studies evaluate GLM as a statistical inference tool or DL/ML models as predictive classifiers independently. Here, both are evaluated under the **same dataset, preprocessing pipeline, and subject-level cross-validation protocol**, enabling a direct comparison between **statistical inference behavior and predictive modeling behavior** rather than isolated performance comparisons.
+
+### 2. Focus on Small-Sample Instability Regimes (N=26)
+Rather than treating small sample size as a limitation to be overcome, this study treats it as the primary experimental condition. We explicitly characterize how DL models behave under severe sample constraints, including:
+- cross-validation variance
+- instability across folds
+- degradation under reduced training samples
+
+The focus is on **failure modes and instability patterns**, not accuracy maximization.
+
+### 3. Quantification of Overfitting as a Comparative Property
+Unlike typical neuroimaging ML studies where overfitting is qualitative, here it is treated as a **quantifiable model property across model classes**. We measure:
+- training–validation divergence
+- learning-curve dynamics
+- cross-validation variability
+
+These are compared across GLM-based statistical stability and DL predictive instability under identical data partitions.
+
+### 4. Spatial Correspondence Between Statistical and Learned Representations
+We evaluate whether DL-derived spatial attribution patterns align with GLM-derived activation maps. This is treated as a **primary analysis objective rather than post-hoc interpretability**.
+
+Spatial correspondence is quantified using:
+- Pearson correlation of spatial maps
+- Dice coefficient (thresholded overlap)
+
+This allows evaluation of whether predictive models recover canonical cognitive control networks identified by GLM.
+
+### 5. Representation-Centric Interpretation of Model Differences
+Rather than treating GLM and DL as competing predictive systems, this study frames them as:
+
+- **GLM**: hypothesis-driven statistical inference of task-evoked activation  
+- **DL**: data-driven predictive representation learning model  
+
+The comparison therefore focuses on **alignment between statistical inference maps and learned representations**, not raw predictive performance.
+
+### 6. Controlled Evaluation Protocol for Reproducibility
+All analyses are performed under a unified experimental protocol:
+- Leave-One-Subject-Out (LOSO) cross-validation
+- Strict subject-level separation (no data leakage)
+- Permutation-based null models for significance testing
+- Identical preprocessing and feature extraction pipelines
+
+This ensures that observed differences reflect **model class behavior rather than pipeline differences**.
+
+---
+
+### 🔑 Summary of Contribution
+
+In summary, this study provides a controlled methodological framework for:
+
+- Comparing statistical inference (GLM) and predictive modeling (DL) under identical conditions  
+- Characterizing model behavior under small-sample fMRI constraints  
+- Quantifying overfitting and stability as primary dependent variables  
+- Evaluating spatial correspondence between inference-driven and data-driven representations  
+
+Rather than introducing new algorithms, this work characterizes the **behavioral and representational limits of existing modeling approaches under constrained neuroimaging regimes**.
+
+---
 
 ## 🎯 Objectives
 
-1. **Preprocessing**: Apply standardized FSL preprocessing pipelines to task-based fMRI data
-2. **GLM Analysis**: Identify cognitive control brain regions using classical statistical approaches
-3. **Feature Extraction**: Develop robust feature extraction methods for machine learning applications
-4. **Deep Learning**: Design and implement neural networks for cognitive state classification
-5. **Comparison**: Systematically evaluate and compare methodological approaches
-6. **Validation**: Assess generalizability and practical utility for cognitive neuroscience research
+1. Perform standardized preprocessing and motion-aware quality control using FSL pipelines.  
+2. Fit GLM models to obtain statistical activation maps (Incongruent > Congruent).  
+3. Train regularized ML and DL models under extreme sample-size constraints.  
+4. Evaluate cross-subject generalization using Leave-One-Subject-Out (LOSO).  
+5. Quantify overfitting via training–validation divergence and learning curves.  
+6. Quantify spatial correspondence between GLM activation maps and DL attribution maps.  
+7. Perform permutation testing to establish empirical chance performance.
+
+---
+
+## 📊 Experimental Design
+
+This study follows a strictly controlled evaluation protocol:
+
+### Data Splitting Strategy
+- **Leave-One-Subject-Out (LOSO) Cross-Validation**: used for all predictive modeling and evaluation.
+- **Strict subject-level separation**: ensures no subject leakage between training and test sets.
+
+### Baseline Models
+- **General Linear Model (GLM)**: statistical inference baseline for task-evoked activation.
+- **Logistic Regression**: linear predictive baseline using extracted features.
+
+### Deep Learning Models
+- **Shallow Multi-Layer Perceptron (MLP)** on extracted features  
+- **Regularized CNNs (1D and 3D)** with dropout and weight decay constraints  
+
+### Evaluation Protocol
+- **Permutation Testing**: ≥1000 label shuffles for empirical null distributions  
+- **Cross-validation variance reporting** across LOSO folds  
+- **Learning curve analysis** to quantify overfitting dynamics (train vs validation divergence)
 
 ## 📊 Dataset
 
@@ -107,6 +208,7 @@ Participants indicate the direction of a central arrow in a 5-arrow array:
 2. ROI-based activation summaries 
 3. Connectivity features (seed-based correlation)
 4. Dimensionality reduction (PCA, ICA components)
+# Feature representations include both voxel-wise maps and reduced-dimensional embeddings to mitigate overfitting in high-dimensional space
 
 # Cross-validation strategy
 - Leave-one-subject-out (LOSO)
@@ -114,33 +216,32 @@ Participants indicate the direction of a central arrow in a 5-arrow array:
 - Proper train/validation/test splits
 ```
 
-### Phase 5: Deep Learning Implementation
+### Phase 5: Deep Learning Implementation under Small-Sample Constraints
 ```python
-# Architecture considerations
-- Shallow networks to prevent overfitting
-- Convolutional layers for spatial features
-- Dropout and L2 regularization
-- Batch normalization
+# Architecture considerations (designed for small N=26 regime)
+- Shallow network designs optimized to characterize baseline overfitting
+- Convolutional layers (1D and 3D) for spatial and temporal features
+- Explicit dropout, L2 regularization, and batch normalization to measure generalization curves
+- Systematic benchmarking across varying sample subsets (degradation analysis)
 
 # Model variants
-1. Multi-layer Perceptron (MLP) on extracted features  
-2. 1D CNN on time series
-3. 3D CNN on activation maps (with heavy regularization)
-4. Ensemble methods combining multiple approaches
+1. Multi-layer Perceptron (MLP) on classical feature extractions
+2. 1D CNN on voxel time series
+3. 3D CNN on full-brain activation maps (measuring overfitting under heavy spatial constraints)
+4. Ensemble methods combining classical and deep architectures
 ```
 
-### Phase 6: Comparative Evaluation
+### Phase 6: Comparative & Spatial Attribution Evaluation
 ```python
-# Performance metrics
+# Generalization metrics
 - Classification accuracy, precision, recall, F1-score
 - ROC-AUC and precision-recall curves  
-- Cross-validation stability
-- Statistical significance testing
+- Cross-validation variance and stability (using Leave-One-Subject-Out)
+- Learning curves: training vs. validation trajectory analysis (quantifying generalization gap)
 
-# Interpretability analysis
-- GLM activation maps vs DL saliency maps
-- Feature importance rankings
-- Spatial overlap quantification
+# Spatial overlap analysis
+- Spatial overlap: Comparing GLM statistical activation maps (Z-maps) with DL-derived spatial attribution maps. Overlap is quantified using similarity metrics such as Pearson correlation or Dice coefficient.
+- Methodological comparison: GLM as a statistical baseline vs. DL as a distributed feature learner
 ```
 
 ## 📁 Project Structure
@@ -286,45 +387,31 @@ deep_learning:
   max_epochs: 200
 ```
 
-## 📈 Expected Results
+## 📈 Expected Outcomes
 
-### GLM Analysis Outcomes
-- **Activation maps**: Frontal-parietal control network engagement
-- **Contrasts**: Incongruent > Congruent in ACC, IFG, IPS
-- **Effect sizes**: Cohen's d typically 0.5-1.2 in key regions
-- **Behavioral correlation**: RT differences correlate with brain activation
-
-### Deep Learning Performance
-- **Classification accuracy**: 65-80% (above chance level of 50%)
-- **Cross-validation stability**: ±5-10% across folds  
-- **Feature importance**: Frontal and parietal regions most predictive
-- **Overfitting assessment**: Training vs validation learning curves
-
-### Method Comparison
-- **Spatial overlap**: 40-70% between GLM and DL important regions
-- **Sensitivity analysis**: DL may detect subtle distributed patterns
-- **Interpretability trade-offs**: GLM more interpretable, DL potentially more sensitive
-- **Sample size effects**: Performance degradation analysis for smaller samples
+- GLM is expected to produce stable and interpretable activation maps consistent with established cognitive control networks involved in cognitive control tasks.
+- Deep learning models are expected to show higher variance across cross-validation folds due to limited sample size.
+- Spatial overlap between GLM and DL-derived maps will be evaluated rather than assumed.
+- Model performance will be interpreted through statistical significance testing rather than fixed performance thresholds.
 
 ## 📊 Quality Metrics
 
 ### Data Quality Thresholds
 ```python
-# Inclusion criteria
+# Inclusion criteria (standard neuroimaging QC thresholds)
 max_mean_fd = 0.5      # Maximum mean framewise displacement (mm)
 max_dvars = 75         # Maximum DVARS threshold  
 min_tsnr = 50          # Minimum temporal signal-to-noise ratio
 max_outlier_pct = 10   # Maximum percentage outlier volumes
 ```
 
-### Model Performance Benchmarks
-```python
-# Expected performance ranges
-GLM_sensitivity = [0.70, 0.85]      # Activation detection sensitivity
-DL_accuracy = [0.65, 0.80]          # Classification accuracy  
-cross_val_stability = 0.05          # Maximum CV standard deviation
-spatial_overlap = [0.40, 0.70]      # GLM-DL spatial correlation
-```
+### 📊 Evaluation Strategy
+
+Model performance is assessed using:
+- Permutation-based null distributions for classification accuracy (1000+ permutations).
+- Cross-subject stability (LOSO variance).
+- Spatial overlap metrics between GLM and DL maps (Dice coefficient / correlation).
+- Learning curve analysis to quantify overfitting behavior.
 
 ## 📝 Citation
 
@@ -332,7 +419,7 @@ If you use this code or methodology, please cite:
 
 ```bibtex
 @article{your_study_2026,
-  title={A Comparative Study of General Linear Modeling and Deep Learning Approaches for Task-Based fMRI Analysis of Cognitive Control},
+  title={A Methodological Study of GLM and Deep Learning Behavior in Small-Sample Task-Based fMRI of Cognitive Control},
   author={Your Name and Colleagues},
   journal={Journal of Neuroinformatics},
   year={2026},
