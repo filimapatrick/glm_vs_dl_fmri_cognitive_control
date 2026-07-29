@@ -239,6 +239,19 @@ def main():
     print(f"  Empirical Null Mean Accuracy: {null_accs.mean():.4f} ± {null_accs.std():.4f}")
     print(f"  Empirical p-value: {p_empirical:.4f}")
 
+    # Plot Permutation Null Distribution
+    plt.figure(figsize=(9, 5))
+    plt.hist(null_accs, bins=25, color='#2b5c8f', alpha=0.7, edgecolor='black', label=f'Null Distribution (Mean = {null_accs.mean():.2%})')
+    plt.axvline(obs_acc, color='#e07a5f', linestyle='--', linewidth=2.5, label=f'Observed Accuracy ({obs_acc:.2%}, p = {p_empirical:.4f})')
+    plt.xlabel('LOSO Classification Accuracy')
+    plt.ylabel('Frequency')
+    plt.title(f'Non-Parametric Permutation Null Distribution ({args.n_permutations} Shuffles)')
+    plt.legend(loc='upper right')
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(output_dir / "permutation_null_distribution.png", dpi=300)
+    plt.close()
+
     # Save final evaluation report
     final_report = {
         "model_performance": model_summary,

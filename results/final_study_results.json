@@ -34,6 +34,10 @@
         1.0,
         1.0,
         1.0
+      ],
+      "accuracy_95ci": [
+        0.6153846153846154,
+        0.9230769230769231
       ]
     },
     "ShallowMLP_PCA": {
@@ -70,6 +74,10 @@
         1.0,
         1.0,
         1.0
+      ],
+      "accuracy_95ci": [
+        0.5192307692307693,
+        0.8466346153846149
       ]
     },
     "ConvNet1D_PCA": {
@@ -106,20 +114,36 @@
         0.5,
         1.0,
         0.0
+      ],
+      "accuracy_95ci": [
+        0.5576923076923077,
+        0.8653846153846154
       ]
     }
   },
+  "statistical_comparisons": {
+    "LR_vs_MLP": {
+      "t_statistic": 1.2803687993289599,
+      "p_value": 0.21216812901028276,
+      "cohens_d": 0.2511009722791917
+    },
+    "LR_vs_CNN": {
+      "t_statistic": 0.7684732793678399,
+      "p_value": 0.44940498618083363,
+      "cohens_d": 0.150710005569579
+    }
+  },
   "spatial_correspondence": {
-    "pearson_correlation": 0.8835,
-    "pearson_pvalue": 1e-05,
-    "dice_coefficient_top10pct": 0.5449,
-    "methodology": "Linear model coefficients w_voxel = V_PCA * w_PCA mapped back into 3D voxel space."
+    "pearson_correlation": 0.8834796870907369,
+    "pearson_pvalue": 0.0,
+    "dice_coefficient_top10pct": 0.5448816140750142,
+    "methodology": "Linear model coefficients fitted on standardized in-mask voxels correlated with unthresholded group GLM Z-stat map."
   },
   "permutation_test": {
-    "n_permutations": 1000,
+    "n_permutations": 100,
     "observed_accuracy": 0.7692307692307693,
-    "null_accuracy_mean": 0.4952,
-    "null_accuracy_std": 0.0794,
-    "empirical_p_value": 0.0099
+    "null_accuracy_mean": 0.4765384615384616,
+    "null_accuracy_std": 0.08362974896077713,
+    "empirical_p_value": 0.009900990099009901
   }
 }
