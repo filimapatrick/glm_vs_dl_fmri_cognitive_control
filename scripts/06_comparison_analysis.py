@@ -86,6 +86,28 @@ def run_permutation_test(X_raw, y, loso_splits, n_permutations=1000, n_component
     return np.array(null_accuracies)
 
 
+from scipy.stats import ttest_rel
+
+
+def compute_bootstrap_ci(values, n_bootstraps=1000, ci=95, seed=42):
+    """Computes non-parametric bootstrap confidence interval for a metric vector."""
+    np.random.seed(seed)
+    boot_means = []
+    n = len(values)
+    for _ in range(n_bootstraps):
+        sample = np.random.choice(values, size=n, replace=True)
+        boot_means.append(np.mean(sample))
+    lower = np.percentile(boot_means, (100 - ci) / 2.0)
+    upper = np.percentile(boot_means, 100 - (100 - ci) / 2.0)
+    return lower, upper
+
+
+def compute_cohens_d(x1, x2):
+    """Computes Cohen's d effect size for paired samples."""
+    diff = x1 - x2
+    return np.mean(diff) / (np.std(diff, ddof=1) + 1e-8)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Phase 6: Comparative Analysis & Spatial Attribution")
     parser.add_argument("--features_dir", default="/Volumes/MyHDD/glm_vs_dl_fmri_cognitive_control/derivatives/features", help="Path to features")
@@ -108,8 +130,36 @@ def main():
     with open(summary_file, "r") as f:
         model_summary = json.load(f)
 
-    # 1. Plot Model Comparison Bar Chart
+    # 1. Compute Statistical Model Comparisons (Paired t-tests, CIs, Effect Sizes)
     models = list(model_summary.keys())
+    stats_comparison = {}
+    
+    for m in models:
+        accs = np.array(model_summary[m]["fold_accuracies"])
+        low, high = compute_bootstrap_ci(accs)
+        model_summary[m]["accuracy_95ci"] = [float(low), float(high)]
+
+    lr_accs = np.array(model_summary["LogisticRegression_PCA"]["fold_accuracies"])
+    mlp_accs = np.array(model_summary["ShallowMLP_PCA"]["fold_accuracies"])
+    cnn_accs = np.array(model_summary["ConvNet1D_PCA"]["fold_accuracies"])
+
+    # Paired t-tests & Cohen's d
+    t_lr_mlp, p_lr_mlp = ttest_rel(lr_accs, mlp_accs)
+    d_lr_mlp = compute_cohens_d(lr_accs, mlp_accs)
+
+    t_lr_cnn, p_lr_cnn = ttest_rel(lr_accs, cnn_accs)
+    d_lr_cnn = compute_cohens_d(lr_accs, cnn_accs)
+
+    stats_comparison = {
+        "LR_vs_MLP": {"t_statistic": float(t_lr_mlp), "p_value": float(p_lr_mlp), "cohens_d": float(d_lr_mlp)},
+        "LR_vs_CNN": {"t_statistic": float(t_lr_cnn), "p_value": float(p_lr_cnn), "cohens_d": float(d_lr_cnn)}
+    }
+
+    print("\n📊 Paired Model Comparison Tests:")
+    print(f"  Logistic Regression vs. Shallow MLP: t = {t_lr_mlp:.3f}, p = {p_lr_mlp:.4f}, Cohen's d = {d_lr_mlp:.3f}")
+    print(f"  Logistic Regression vs. 1D-CNN: t = {t_lr_cnn:.3f}, p = {p_lr_cnn:.4f}, Cohen's d = {d_lr_cnn:.3f}")
+
+    # 2. Plot Model Comparison Bar Chart
     accs = [model_summary[m]["accuracy"] for m in models]
     stds = [model_summary[m]["accuracy_std"] for m in models]
     aucs = [model_summary[m]["roc_auc"] for m in models]
@@ -132,7 +182,7 @@ def main():
     plt.savefig(output_dir / "model_performance_comparison.png", dpi=300)
     plt.close()
 
-    # 2. Fold Accuracy Distribution Box/Violin Plot
+    # 3. Fold Accuracy Distribution Box Plot
     plt.figure(figsize=(9, 5))
     fold_data = [model_summary[m]["fold_accuracies"] for m in models]
     labels_clean = [m.replace('_PCA', '') for m in models]
@@ -149,19 +199,24 @@ def main():
     plt.savefig(output_dir / "fold_accuracy_distribution.png", dpi=300)
     plt.close()
 
-    # 3. Spatial Attribution vs. GLM Z-Map Overlap Analysis
+    # 4. Spatial Attribution vs. GLM Z-Map Overlap Analysis
     X_voxel = np.load(features_dir / "X_classification_voxel.npy")
     y = np.load(features_dir / "y_classification.npy")
     with open(features_dir / "loso_splits.json", "r") as f:
         loso_splits = json.load(f)
 
-    # Fit whole-brain voxel linear baseline to extract spatial weights
+    # Reconstruct whole-brain spatial voxel weights via PCA back-projection: w_voxel = V_pca * w_pca
     scaler_full = StandardScaler()
     X_voxel_scaled = scaler_full.fit_transform(X_voxel)
     
-    clf_voxel = LogisticRegression(C=1.0, max_iter=500, random_state=42)
-    clf_voxel.fit(X_voxel_scaled, y)
-    spatial_weights = clf_voxel.coef_[0]
+    pca_full = PCA(n_components=20, random_state=42)
+    X_pca_full = pca_full.fit_transform(X_voxel_scaled)
+    
+    clf_pca = LogisticRegression(C=1.0, max_iter=500, random_state=42)
+    clf_pca.fit(X_pca_full, y)
+    
+    w_pca = clf_pca.coef_[0]
+    spatial_weights = pca_full.components_.T @ w_pca
 
     # Load average GLM voxel Z-stat vector (Incongruent > Congruent)
     glm_zstat_voxels = np.load(features_dir / "features_voxel_zstat.npy").mean(axis=0)
@@ -170,11 +225,11 @@ def main():
     corr_val, p_val = pearsonr(spatial_weights, glm_zstat_voxels)
     dice_val = dice_coefficient(spatial_weights, glm_zstat_voxels, threshold_percentile=90)
 
-    print("\n🗺️ Spatial Correspondence (GLM Z-Map vs. ML Feature Attribution):")
+    print("\n🗺️ Spatial Correspondence (GLM Z-Map vs. PCA Reconstructed ML Attribution):")
     print(f"  Pearson Spatial Correlation (r): {corr_val:.4f} (p = {p_val:.4e})")
     print(f"  Dice Overlap Coefficient (Top 10% Voxels): {dice_val:.4f}")
 
-    # 4. Non-Parametric Permutation Null Testing (Fold-Nested 1000 Permutations)
+    # 5. Non-Parametric Permutation Null Testing (Fold-Nested 1000 Permutations)
     null_accs = run_permutation_test(X_voxel, y, loso_splits, n_permutations=args.n_permutations)
     obs_acc = model_summary["LogisticRegression_PCA"]["accuracy"]
     p_empirical = (np.sum(null_accs >= obs_acc) + 1) / (len(null_accs) + 1)
@@ -187,10 +242,12 @@ def main():
     # Save final evaluation report
     final_report = {
         "model_performance": model_summary,
+        "statistical_comparisons": stats_comparison,
         "spatial_correspondence": {
             "pearson_correlation": float(corr_val),
             "pearson_pvalue": float(p_val),
-            "dice_coefficient_top10pct": float(dice_val)
+            "dice_coefficient_top10pct": float(dice_val),
+            "methodology": "Linear model coefficients fitted on standardized in-mask voxels correlated with unthresholded group GLM Z-stat map."
         },
         "permutation_test": {
             "n_permutations": args.n_permutations,

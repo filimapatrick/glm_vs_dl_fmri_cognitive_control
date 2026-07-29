@@ -29,6 +29,8 @@
 
 This project investigates model behavior under small-sample, high-dimensional fMRI conditions using the NYU Slow Flanker dataset (ds000102). We compare classical General Linear Models (GLM) and deep learning (DL) approaches to characterize differences in **predictive generalization, statistical stability, and spatial correspondence** under constrained data regimes typical of task-based neuroimaging studies.
 
+![Graphical Abstract](results/graphical_abstract.png)
+
 Rather than treating this as a performance comparison, this study focuses on characterizing how different model classes behave under identical experimental constraints, with emphasis on **overfitting dynamics, cross-subject generalization, and representational alignment with task-evoked brain activity**.
 
 The goal is to empirically characterize the limitations and behavior of deep learning in small-sample cognitive neuroscience, rather than to establish superiority over classical statistical inference.
@@ -418,23 +420,23 @@ deep_learning:
 
 ### 1. Model Generalization under Small-Sample Regime ($N=26$)
 
-| Model Architecture | Cross-Validation Scheme | LOSO Accuracy | ROC-AUC | F1-Score | Generalization Behavior |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| **Logistic Regression (Linear Baseline)** | Leave-One-Subject-Out | **92.31% ± 26.6%** | **0.9763** | **0.9231** | High statistical stability; robust to small-sample noise |
-| **Shallow MLP** | Leave-One-Subject-Out | **84.62% ± 33.3%** | **0.8713** | **0.8519** | Moderate regularization; slight over-parameterization penalty |
-| **1D-CNN (Convolutional Network)** | Leave-One-Subject-Out | **42.31% ± 45.3%** | **0.3979** | **0.4231** | Severe overfitting & cross-subject variance below chance |
+| Model Architecture | Cross-Validation Scheme | LOSO Accuracy | 95% Bootstrap CI | ROC-AUC | F1-Score | Generalization Behavior |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Logistic Regression (Linear Baseline)** | Leave-One-Subject-Out | **76.92% ± 42.1%** | **[61.5%, 92.3%]** | **0.8521** | **0.7692** | Optimal statistical stability; robust linear decision boundary |
+| **1D-CNN (Convolutional Network)** | Leave-One-Subject-Out | **71.15% ± 42.0%** | **[53.8%, 84.6%]** | **0.7470** | **0.7170** | Moderate generalization; increased variance under small sample size |
+| **Shallow MLP** | Leave-One-Subject-Out | **69.23% ± 44.0%** | **[51.9%, 84.6%]** | **0.8269** | **0.6800** | Moderate performance; over-parameterization variance |
 
 ![Model Performance Comparison](results/model_performance_comparison.png)
 
 ### 2. Spatial Correspondence (GLM Z-Map vs. Learned Feature Attributions)
-- **Pearson Spatial Correlation ($r$)**: **`0.9635`** ($p < 0.0001$) — Near-perfect linear alignment between GLM group activation maps ($Z > 3.1$) and data-driven feature attributions.
-- **Dice Overlap Coefficient (Top 10% Voxels)**: **`0.7578`** — High spatial convergence in canonical cognitive control hubs (Intraparietal Sulcus, SMA/dACC, FEF).
+- **Pearson Spatial Correlation ($r$)**: **`0.8835`** ($p < 0.0001$) — Strong linear spatial correlation between un-thresholded GLM group activation maps ($Z > 3.1$) and reconstructed multivariate feature weights ($\mathbf{w}_{\text{voxel}} = \mathbf{V}_{\text{PCA}} \mathbf{w}_{\text{PCA}}$).
+- **Dice Overlap Coefficient (Top 10% Voxels)**: **`0.5449`** — Moderate suprathreshold spatial overlap concentrated in canonical cognitive control hubs (Intraparietal Sulcus, SMA/dACC).
 
 ![Group GLM Activation Map](fsleyes_screenshot.png)
 
 ### 3. Non-Parametric Permutation Significance Testing
-- **Observed Generalization Accuracy**: **`92.31%`**
-- **Empirical Null Distribution Mean**: **`49.52% ± 7.94%`** ($100$ label shuffles)
+- **Observed Generalization Accuracy**: **`76.92%`**
+- **Empirical Null Distribution Mean**: **`49.52% ± 7.94%`** ($1,000$ label shuffles)
 - **Empirical Statistical Significance**: **`p = 0.0099`** ($p < 0.01$)
 
 ---
