@@ -214,7 +214,7 @@ Rather than advocating a particular algorithm, this work provides a reproducible
 
 ## 🔮 Future Work
 
-Future work should evaluate whether the present findings generalize across multiple cognitive paradigms, larger multi-site cohorts, and pretrained representation-learning models (Van Essen et al., 2013; Casey et al., 2018). Extending the framework to foundation models and self-supervised neuroimaging representations will help determine whether the observed stability advantages of regularized linear models persist as data availability and model capacity increase (Thomas et al., 2019; Zhou et al., 2023).
+Future work should evaluate whether the present findings generalize across multiple cognitive paradigms, larger multi-site cohorts, and pretrained representation-learning models (Van Essen et al., 2013; Casey et al., 2018). In particular, future work should determine whether these findings extend to modern pretrained neuroimaging foundation models, where representation learning occurs prior to downstream task-specific fine-tuning (Thomas et al., 2019; Zhou et al., 2023). Extending the framework to foundation models and self-supervised neuroimaging representations will help determine whether the observed stability advantages of regularized linear models persist as data availability and model capacity increase.
 
 ---
 
