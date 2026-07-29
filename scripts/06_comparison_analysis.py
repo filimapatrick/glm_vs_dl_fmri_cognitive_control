@@ -182,18 +182,26 @@ def main():
     plt.savefig(output_dir / "model_performance_comparison.png", dpi=300)
     plt.close()
 
-    # 3. Fold Accuracy Distribution Box Plot
+    # 3. Fold Accuracy Distribution Box Plot with Individual Fold Jitter Points
     plt.figure(figsize=(9, 5))
     fold_data = [model_summary[m]["fold_accuracies"] for m in models]
     labels_clean = [m.replace('_PCA', '') for m in models]
     
-    plt.boxplot(fold_data, tick_labels=labels_clean, patch_artist=True,
-                boxprops=dict(facecolor='#2b5c8f', alpha=0.6),
-                medianprops=dict(color='#e07a5f', linewidth=2))
+    bp = plt.boxplot(fold_data, tick_labels=labels_clean, patch_artist=True,
+                     boxprops=dict(facecolor='#2b5c8f', alpha=0.5),
+                     medianprops=dict(color='#e07a5f', linewidth=2.5))
+    
+    # Overlay individual fold points with jitter
+    np.random.seed(42)
+    for i, folds in enumerate(fold_data, start=1):
+        jitter = np.random.normal(0, 0.04, size=len(folds))
+        plt.scatter(np.full_like(folds, i) + jitter, folds, alpha=0.7, color='#2b5c8f', edgecolors='black', linewidths=0.5, s=35, label='Subject Fold' if i == 1 else "")
+
     plt.axhline(0.5, color='gray', linestyle='--', label='Chance Level (0.50)')
     plt.ylabel('Fold Accuracy')
     plt.title('Fold-Level Accuracy Distribution across 26 LOSO Subject Folds')
     plt.ylim(-0.05, 1.05)
+    plt.legend(loc='lower right')
     plt.grid(axis='y', alpha=0.3)
     plt.tight_layout()
     plt.savefig(output_dir / "fold_accuracy_distribution.png", dpi=300)
@@ -223,10 +231,11 @@ def main():
 
     # Compute spatial overlap metrics
     corr_val, p_val = pearsonr(spatial_weights, glm_zstat_voxels)
+    safe_p_val = float(p_val) if p_val > 0 else 1.0e-15
     dice_val = dice_coefficient(spatial_weights, glm_zstat_voxels, threshold_percentile=90)
 
     print("\n🗺️ Spatial Correspondence (GLM Z-Map vs. PCA Reconstructed ML Attribution):")
-    print(f"  Pearson Spatial Correlation (r): {corr_val:.4f} (p = {p_val:.4e})")
+    print(f"  Pearson Spatial Correlation (r): {corr_val:.4f} (p = {safe_p_val:.4e})")
     print(f"  Dice Overlap Coefficient (Top 10% Voxels): {dice_val:.4f}")
 
     # 5. Non-Parametric Permutation Null Testing (Fold-Nested 1000 Permutations)
@@ -258,7 +267,7 @@ def main():
         "statistical_comparisons": stats_comparison,
         "spatial_correspondence": {
             "pearson_correlation": float(corr_val),
-            "pearson_pvalue": float(p_val),
+            "pearson_pvalue": float(safe_p_val),
             "dice_coefficient_top10pct": float(dice_val),
             "methodology": "Linear model coefficients fitted on standardized in-mask voxels correlated with unthresholded group GLM Z-stat map."
         },

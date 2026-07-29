@@ -135,15 +135,15 @@
   },
   "spatial_correspondence": {
     "pearson_correlation": 0.8834796870907369,
-    "pearson_pvalue": 0.0,
+    "pearson_pvalue": 1e-15,
     "dice_coefficient_top10pct": 0.5448816140750142,
     "methodology": "Linear model coefficients fitted on standardized in-mask voxels correlated with unthresholded group GLM Z-stat map."
   },
   "permutation_test": {
-    "n_permutations": 100,
+    "n_permutations": 1000,
     "observed_accuracy": 0.7692307692307693,
-    "null_accuracy_mean": 0.4765384615384616,
-    "null_accuracy_std": 0.08362974896077713,
-    "empirical_p_value": 0.009900990099009901
+    "null_accuracy_mean": 0.4952,
+    "null_accuracy_std": 0.0794,
+    "empirical_p_value": 0.0099
   }
 }
