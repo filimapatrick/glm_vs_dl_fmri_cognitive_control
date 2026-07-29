@@ -17,7 +17,7 @@ Our empirical evaluations demonstrate that regularized linear models with fold-n
 These findings suggest that, under severe sample scarcity, regularized linear models provide a robust baseline for out-of-subject decoding while preserving substantial correspondence with classical GLM-derived activation patterns. More broadly, this work provides a reproducible evaluation framework for systematically comparing statistical inference and representation-learning approaches under controlled small-sample task-fMRI conditions.
 
 ![Graphical Abstract](results/graphical_abstract.png)  
-*Figure 0: Controlled Evaluation Framework for Small-Sample Task fMRI.*
+*Graphical Abstract: Controlled Evaluation Framework for Small-Sample Task fMRI.*
 
 ---
 
