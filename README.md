@@ -1,4 +1,4 @@
-# A Methodological Study of GLM and Deep Learning Behavior in Small-Sample Task-Based fMRI of Cognitive Control
+# Characterizing Statistical Inference and Representation Learning under Extreme Sample Constraints in Task fMRI
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)

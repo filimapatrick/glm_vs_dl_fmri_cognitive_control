@@ -132,30 +132,42 @@ def train_torch_model(model, train_loader, val_loader, epochs=50, lr=0.001, weig
     return history
 
 
-def evaluate_loso(X, y, loso_splits, model_type="logistic_regression", epochs=50, batch_size=8, lr=0.001):
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+
+def evaluate_loso(X_raw, y, loso_splits, model_type="logistic_regression", n_components=20, epochs=50, batch_size=8, lr=0.001):
     """
     Performs Leave-One-Subject-Out (LOSO) Cross-Validation for a specified model.
+    Applies fold-nested StandardScaler and PCA fitted STRICTLY on training folds to prevent data leakage.
     """
     y_true_all = []
     y_pred_all = []
     y_prob_all = []
     fold_accuracies = []
 
-    print(f"\n⚡ Running Leave-One-Subject-Out CV for model: '{model_type}' (Total Folds: {len(loso_splits)})...")
+    print(f"\n⚡ Running Fold-Nested Leave-One-Subject-Out CV for model: '{model_type}' (Total Folds: {len(loso_splits)})...")
 
     for fold in loso_splits:
         test_sub = fold["test_subject"]
-        # In dual-condition dataset, each subject has 2 samples (Congruent=0, Incongruent=1)
-        # Find sample indices belonging to test subject
         n_subs = len(loso_splits)
         sub_idx = fold["test_indices"][0]
         
-        # Test indices correspond to subject sub_idx (Congruent) and sub_idx + n_subs (Incongruent)
         test_idx = [sub_idx, sub_idx + n_subs]
         train_idx = [j for j in range(len(y)) if j not in test_idx]
 
-        X_train, y_train = X[train_idx], y[train_idx]
-        X_test, y_test = X[test_idx], y[test_idx]
+        X_tr_raw, y_train = X_raw[train_idx], y[train_idx]
+        X_te_raw, y_test = X_raw[test_idx], y[test_idx]
+
+        # Fit StandardScaler and PCA strictly inside training fold (Zero Leakage)
+        scaler = StandardScaler()
+        X_tr_scaled = scaler.fit_transform(X_tr_raw)
+        X_te_scaled = scaler.transform(X_te_raw)
+
+        n_comp = min(n_components, X_tr_scaled.shape[0] - 1)
+        pca = PCA(n_components=n_comp, random_state=42)
+        X_train = pca.fit_transform(X_tr_scaled)
+        X_test = pca.transform(X_te_scaled)
 
         if model_type == "logistic_regression":
             clf = LogisticRegression(C=1.0, max_iter=500, random_state=42)
@@ -181,9 +193,9 @@ def evaluate_loso(X, y, loso_splits, model_type="logistic_regression", epochs=50
             test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False)
 
             if model_type == "mlp":
-                net = ShallowMLP(input_dim=X.shape[1], hidden_dim=32, dropout_rate=0.5)
+                net = ShallowMLP(input_dim=X_train.shape[1], hidden_dim=32, dropout_rate=0.5)
             else:
-                net = ConvNet1D(input_dim=X.shape[1], hidden_channels=16, dropout_rate=0.5)
+                net = ConvNet1D(input_dim=X_train.shape[1], hidden_channels=16, dropout_rate=0.5)
 
             _ = train_torch_model(net, train_loader, test_loader, epochs=epochs, lr=lr)
             
@@ -200,7 +212,6 @@ def evaluate_loso(X, y, loso_splits, model_type="logistic_regression", epochs=50
         y_pred_all.extend(preds)
         y_prob_all.extend(probs)
 
-    # Aggregate overall metrics
     overall_acc = accuracy_score(y_true_all, y_pred_all)
     overall_prec = precision_score(y_true_all, y_pred_all, zero_division=0)
     overall_rec = recall_score(y_true_all, y_pred_all, zero_division=0)
@@ -234,32 +245,31 @@ def main():
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load classification dataset matrices
-    X_pca_path = features_dir / "X_classification_pca.npy"
+    # Load raw voxel classification matrix & labels
     X_voxel_path = features_dir / "X_classification_voxel.npy"
     y_path = features_dir / "y_classification.npy"
     loso_path = features_dir / "loso_splits.json"
 
-    if not (X_pca_path.exists() and y_path.exists() and loso_path.exists()):
+    if not (X_voxel_path.exists() and y_path.exists() and loso_path.exists()):
         print("ERROR: Feature files not found in derivatives/features. Please run scripts/04_feature_extraction.py first.", file=sys.stderr)
         sys.exit(1)
 
-    X_pca = np.load(X_pca_path)
+    X_voxel = np.load(X_voxel_path)
     y = np.load(y_path)
 
     with open(loso_path, "r") as f:
         loso_splits = json.load(f)
 
-    print(f"Loaded classification matrix X_pca: {X_pca.shape}, y: {y.shape}, LOSO folds: {len(loso_splits)}")
+    print(f"Loaded raw classification matrix X_voxel: {X_voxel.shape}, y: {y.shape}, LOSO folds: {len(loso_splits)}")
 
-    # Evaluate Model 1: Logistic Regression Baseline (on PCA features)
-    lr_results = evaluate_loso(X_pca, y, loso_splits, model_type="logistic_regression")
+    # Evaluate Model 1: Logistic Regression Baseline (with Fold-Nested PCA)
+    lr_results = evaluate_loso(X_voxel, y, loso_splits, model_type="logistic_regression")
 
-    # Evaluate Model 2: Shallow MLP (on PCA features)
-    mlp_results = evaluate_loso(X_pca, y, loso_splits, model_type="mlp", epochs=args.epochs, lr=args.lr)
+    # Evaluate Model 2: Shallow MLP (with Fold-Nested PCA)
+    mlp_results = evaluate_loso(X_voxel, y, loso_splits, model_type="mlp", epochs=args.epochs, lr=args.lr)
 
-    # Evaluate Model 3: 1D Convolutional Neural Network (on PCA features)
-    cnn1d_results = evaluate_loso(X_pca, y, loso_splits, model_type="cnn1d", epochs=args.epochs, lr=args.lr)
+    # Evaluate Model 3: 1D Convolutional Neural Network (with Fold-Nested PCA)
+    cnn1d_results = evaluate_loso(X_voxel, y, loso_splits, model_type="cnn1d", epochs=args.epochs, lr=args.lr)
 
     # Consolidate all model performance metrics
     summary = {

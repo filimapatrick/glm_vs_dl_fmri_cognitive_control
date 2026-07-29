@@ -35,16 +35,23 @@ def dice_coefficient(map1, map2, threshold_percentile=90):
     return 2.0 * intersection / total
 
 
-def run_permutation_test(X, y, loso_splits, n_permutations=100, seed=42):
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+
+
+def run_permutation_test(X_raw, y, loso_splits, n_permutations=1000, n_components=20, seed=42):
     """
     Performs non-parametric permutation testing by shuffling labels N times
-    to construct empirical null distribution.
+    to construct an empirical null distribution using fold-nested scaling & PCA.
     """
     np.random.seed(seed)
     null_accuracies = []
-    print(f"\n🎲 Running {n_permutations} permutations for null hypothesis testing...")
+    print(f"\n🎲 Running {n_permutations} permutations for non-parametric significance testing...")
 
     for p in range(n_permutations):
+        if (p + 1) % 200 == 0 or p == 0:
+            print(f"  [Permutation Progress] {p + 1} / {n_permutations} completed...")
+            
         y_shuffled = np.random.permutation(y)
         y_true_all, y_pred_all = [], []
 
@@ -54,8 +61,17 @@ def run_permutation_test(X, y, loso_splits, n_permutations=100, seed=42):
             test_idx = [sub_idx, sub_idx + n_subs]
             train_idx = [j for j in range(len(y)) if j not in test_idx]
 
-            X_tr, y_tr = X[train_idx], y_shuffled[train_idx]
-            X_te, y_te = X[test_idx], y_shuffled[test_idx]
+            X_tr_raw, y_tr = X_raw[train_idx], y_shuffled[train_idx]
+            X_te_raw, y_te = X_raw[test_idx], y_shuffled[test_idx]
+
+            scaler = StandardScaler()
+            X_tr_scaled = scaler.fit_transform(X_tr_raw)
+            X_te_scaled = scaler.transform(X_te_raw)
+
+            n_comp = min(n_components, X_tr_scaled.shape[0] - 1)
+            pca = PCA(n_components=n_comp, random_state=42)
+            X_tr = pca.fit_transform(X_tr_scaled)
+            X_te = pca.transform(X_te_scaled)
 
             clf = LogisticRegression(C=1.0, max_iter=300, random_state=42)
             clf.fit(X_tr, y_tr)
@@ -75,7 +91,7 @@ def main():
     parser.add_argument("--features_dir", default="/Volumes/MyHDD/glm_vs_dl_fmri_cognitive_control/derivatives/features", help="Path to features")
     parser.add_argument("--models_dir", default="/Volumes/MyHDD/glm_vs_dl_fmri_cognitive_control/derivatives/models", help="Path to models summary")
     parser.add_argument("--output_dir", default="/Volumes/MyHDD/glm_vs_dl_fmri_cognitive_control/results", help="Path to output figures & results")
-    parser.add_argument("--n_permutations", type=int, default=100, help="Number of label permutation shuffles")
+    parser.add_argument("--n_permutations", type=int, default=1000, help="Number of label permutation shuffles")
     args = parser.parse_args()
 
     features_dir = Path(args.features_dir)
@@ -116,15 +132,35 @@ def main():
     plt.savefig(output_dir / "model_performance_comparison.png", dpi=300)
     plt.close()
 
-    # 2. Spatial Attribution vs. GLM Z-Map Overlap Analysis
+    # 2. Fold Accuracy Distribution Box/Violin Plot
+    plt.figure(figsize=(9, 5))
+    fold_data = [model_summary[m]["fold_accuracies"] for m in models]
+    labels_clean = [m.replace('_PCA', '') for m in models]
+    
+    plt.boxplot(fold_data, tick_labels=labels_clean, patch_artist=True,
+                boxprops=dict(facecolor='#2b5c8f', alpha=0.6),
+                medianprops=dict(color='#e07a5f', linewidth=2))
+    plt.axhline(0.5, color='gray', linestyle='--', label='Chance Level (0.50)')
+    plt.ylabel('Fold Accuracy')
+    plt.title('Fold-Level Accuracy Distribution across 26 LOSO Subject Folds')
+    plt.ylim(-0.05, 1.05)
+    plt.grid(axis='y', alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(output_dir / "fold_accuracy_distribution.png", dpi=300)
+    plt.close()
+
+    # 3. Spatial Attribution vs. GLM Z-Map Overlap Analysis
     X_voxel = np.load(features_dir / "X_classification_voxel.npy")
     y = np.load(features_dir / "y_classification.npy")
     with open(features_dir / "loso_splits.json", "r") as f:
         loso_splits = json.load(f)
 
     # Fit whole-brain voxel linear baseline to extract spatial weights
+    scaler_full = StandardScaler()
+    X_voxel_scaled = scaler_full.fit_transform(X_voxel)
+    
     clf_voxel = LogisticRegression(C=1.0, max_iter=500, random_state=42)
-    clf_voxel.fit(X_voxel, y)
+    clf_voxel.fit(X_voxel_scaled, y)
     spatial_weights = clf_voxel.coef_[0]
 
     # Load average GLM voxel Z-stat vector (Incongruent > Congruent)
@@ -138,11 +174,10 @@ def main():
     print(f"  Pearson Spatial Correlation (r): {corr_val:.4f} (p = {p_val:.4e})")
     print(f"  Dice Overlap Coefficient (Top 10% Voxels): {dice_val:.4f}")
 
-    # 3. Non-Parametric Permutation Null Testing
-    X_pca = np.load(features_dir / "X_classification_pca.npy")
-    null_accs = run_permutation_test(X_pca, y, loso_splits, n_permutations=args.n_permutations)
+    # 4. Non-Parametric Permutation Null Testing (Fold-Nested 1000 Permutations)
+    null_accs = run_permutation_test(X_voxel, y, loso_splits, n_permutations=args.n_permutations)
     obs_acc = model_summary["LogisticRegression_PCA"]["accuracy"]
-    p_empirical = (np.sum(null_accuracies >= obs_acc) + 1) / (len(null_accuracies) + 1) if 'null_accuracies' in locals() else (np.sum(null_accs >= obs_acc) + 1) / (len(null_accs) + 1)
+    p_empirical = (np.sum(null_accs >= obs_acc) + 1) / (len(null_accs) + 1)
 
     print(f"\n📊 Permutation Test Result (N={args.n_permutations}):")
     print(f"  Observed LOSO Accuracy: {obs_acc:.4f}")
@@ -172,8 +207,12 @@ def main():
     print("\n=======================================================")
     print("🎉 Phase 6 Comparative & Spatial Analysis Completed!")
     print(f"Final results report: {output_dir / 'final_study_results.json'}")
-    print(f"Performance plot saved: {output_dir / 'model_performance_comparison.png'}")
+    print(f"Performance plots saved in: {output_dir}")
     print("=======================================================")
+
+
+if __name__ == "__main__":
+    main()
 
 
 if __name__ == "__main__":
