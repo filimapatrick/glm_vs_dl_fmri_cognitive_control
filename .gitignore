@@ -437,6 +437,8 @@ hyperopt_trials/
 
 # Results directories
 results/
+!results/*.png
+!results/*.json
 outputs/
 figures/
 plots/
@@ -459,6 +461,8 @@ derivatives/qc/
 
 # Visualization outputs
 *.png
+!fsleyes_screenshot.png
+!results/*.png
 *.jpg
 *.jpeg
 *.svg
