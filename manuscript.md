@@ -1,6 +1,6 @@
 # Characterizing Statistical Inference and Representation Learning under Extreme Sample Constraints in Task fMRI
 
-**Author**: Patrick Filima  
+**Authors**: Patrick Filima, Barisua Nsaanee, Chinyem Ighodaro, Eberechi Wogu, Damian Eke  
 **Dataset**: NYU Slow Flanker Dataset (OpenNeuro `ds000102`, $N=26$)  
 **Repository**: [`glm_vs_dl_fmri_cognitive_control`](file:///Volumes/MyHDD/glm_vs_dl_fmri_cognitive_control)
 
